@@ -47,6 +47,10 @@ downloads/*
 .env
 .env.local
 
+# Cookies (nunca versionar!)
+cookies.txt
+*.cookies
+
 # Docker
 .dockerignore
 

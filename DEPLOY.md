@@ -80,7 +80,20 @@ cd ~/yt-downloader
 mkdir -p downloads
 ```
 
-### 3.2 Ajustar configurações (opcional)
+### 3.2 Configurar Cookies (Recomendado para evitar detecção de bot)
+Se você está tendo problemas com "Sign in to confirm you're not a bot", configure cookies:
+
+1. **Exporte cookies do seu navegador** (veja `COOKIES.md` para instruções detalhadas)
+2. **Coloque o arquivo `cookies.txt` na raiz do projeto**
+3. **Descomente a linha de cookies no `docker-compose.yml`**:
+```yaml
+volumes:
+  - ./cookies.txt:/app/cookies.txt:ro
+```
+
+**Importante:** Nunca compartilhe seu arquivo `cookies.txt` - ele contém suas credenciais!
+
+### 3.3 Ajustar configurações (opcional)
 Se quiser mudar a porta, edite `docker-compose.yml`:
 ```yaml
 ports:

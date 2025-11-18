@@ -21,41 +21,59 @@ LESSONS_FOLDER_NAME = "assuntos"
 VIDEO_EXTENSIONS = ['.mp4', '.webm', '.mkv', '.m4a', '.mp3']
 SUBTITLE_LANGS = ['pt', 'pt-BR', 'pt-PT']
 
-# Opções comuns do yt-dlp para evitar erro 403
-COMMON_OPTS = {
-    'quiet': False,
-    'no_warnings': False,
-    'extract_flat': False,
-    # User agent mais recente
-    'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'referer': 'https://www.youtube.com/',
-    # Headers mais completos
-    'headers': {
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'DNT': '1',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
-        'Sec-Fetch-Dest': 'document',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Site': 'none',
-        'Sec-Fetch-User': '?1',
-        'Cache-Control': 'max-age=0',
-    },
-    # Opções adicionais para evitar 403
-    'no_check_certificate': False,
-    'prefer_insecure': False,
-    'socket_timeout': 30,
-    'retries': 10,
-    'fragment_retries': 10,
-    'file_access_retries': 3,
-}
+# Opções comuns do yt-dlp para evitar erro 403 e detecção de bot
+def get_common_opts():
+    """Retorna opções comuns do yt-dlp, incluindo cookies se disponível"""
+    opts = {
+        'quiet': False,
+        'no_warnings': False,
+        'extract_flat': False,
+        # User agent mais recente
+        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        'referer': 'https://www.youtube.com/',
+        # Headers mais completos e atualizados
+        'headers': {
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+            'Accept-Language': 'en-US,en;q=0.9,pt;q=0.8',
+            'Accept-Encoding': 'gzip, deflate, br, zstd',
+            'DNT': '1',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Sec-Fetch-User': '?1',
+            'Sec-Ch-Ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
+            'Sec-Ch-Ua-Mobile': '?0',
+            'Sec-Ch-Ua-Platform': '"Windows"',
+            'Cache-Control': 'max-age=0',
+        },
+        # Opções adicionais para evitar 403 e detecção
+        'no_check_certificate': False,
+        'prefer_insecure': False,
+        'socket_timeout': 30,
+        'retries': 10,
+        'fragment_retries': 10,
+        'file_access_retries': 3,
+        # Opções para evitar detecção de bot
+        'sleep_requests': 1,  # Pausa entre requisições
+        'sleep_interval': 1,  # Pausa entre downloads
+        'max_sleep_interval': 5,
+    }
+    
+    # Tenta usar cookies se disponível (via variável de ambiente ou arquivo)
+    cookies_path = os.getenv('YOUTUBE_COOKIES', None)
+    if cookies_path and os.path.exists(cookies_path):
+        opts['cookiefile'] = cookies_path
+    elif os.path.exists('cookies.txt'):
+        opts['cookiefile'] = 'cookies.txt'
+    
+    return opts
 
 def get_video_info(url):
     """Obtém informações do vídeo ou playlist sem baixar"""
     ydl_opts = {
-        **COMMON_OPTS,
+        **get_common_opts(),
         'quiet': True,
         'no_warnings': True,
         'extract_flat': False,  # Extrai informações completas
@@ -148,10 +166,29 @@ def download_video(url, quality='best', is_playlist=False, download_subtitles=Fa
     elif quality == 'bestvideo+bestaudio':
         format_selector = 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best'
     
-    # Estratégias diferentes para tentar evitar 403
+    # Estratégias diferentes para tentar evitar 403 e detecção de bot
+    # Ordem: mais modernos primeiro (menos detecção)
     strategies = [
         {
-            'name': 'android_client',
+            'name': 'mweb_client',
+            'extractor_args': {
+                'youtube': {
+                    'player_client': ['mweb'],
+                    'player_skip': ['webpage', 'configs'],
+                }
+            }
+        },
+        {
+            'name': 'android_embedded',
+            'extractor_args': {
+                'youtube': {
+                    'player_client': ['android_embedded'],
+                    'player_skip': ['webpage', 'configs'],
+                }
+            }
+        },
+        {
+            'name': 'android',
             'extractor_args': {
                 'youtube': {
                     'player_client': ['android'],
@@ -160,7 +197,7 @@ def download_video(url, quality='best', is_playlist=False, download_subtitles=Fa
             }
         },
         {
-            'name': 'ios_client',
+            'name': 'ios',
             'extractor_args': {
                 'youtube': {
                     'player_client': ['ios'],
@@ -169,7 +206,7 @@ def download_video(url, quality='best', is_playlist=False, download_subtitles=Fa
             }
         },
         {
-            'name': 'web_client',
+            'name': 'web',
             'extractor_args': {
                 'youtube': {
                     'player_client': ['web'],
@@ -185,7 +222,7 @@ def download_video(url, quality='best', is_playlist=False, download_subtitles=Fa
     for strategy_idx, strategy in enumerate(strategies, 1):
         try:
             ydl_opts = {
-                **COMMON_OPTS,
+                **get_common_opts(),
                 'format': format_selector,
                 'outtmpl': str(output_path),
                 'quiet': False,
@@ -414,7 +451,7 @@ def download_subtitles_only():
         subtitle_path = video_path.parent / f"{base_name}.%(lang)s.vtt"
         
         ydl_opts = {
-            **COMMON_OPTS,
+            **get_common_opts(),
             'writesubtitles': True,
             'writeautomaticsub': True,
             'subtitleslangs': ['pt', 'pt-BR', 'pt-PT'],

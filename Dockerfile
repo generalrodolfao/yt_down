@@ -20,6 +20,9 @@ COPY . .
 # Cria diretório para downloads
 RUN mkdir -p downloads
 
+# Cria diretório para cookies (opcional, pode ser montado via volume)
+RUN mkdir -p /app/cookies
+
 # Expõe porta
 EXPOSE 5002
 

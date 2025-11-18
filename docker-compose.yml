@@ -9,6 +9,8 @@ services:
     volumes:
       # Persiste downloads entre reinicializações
       - ./downloads:/app/downloads
+      # Cookies do YouTube (opcional - descomente se tiver cookies.txt)
+      # - ./cookies.txt:/app/cookies.txt:ro
     restart: unless-stopped
     environment:
       - FLASK_ENV=production
