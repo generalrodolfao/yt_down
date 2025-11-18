@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Downloader</title>
+    
+    <!-- Materialize CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px 0;
+        }
+        .container {
+            max-width: 800px;
+        }
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .card-title {
+            color: #667eea;
+            font-weight: bold;
+        }
+        .video-info {
+            display: none;
+            margin-top: 20px;
+        }
+        .video-thumbnail {
+            max-width: 100%;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .progress {
+            display: none;
+        }
+        .downloads-list {
+            margin-top: 30px;
+        }
+        .download-item {
+            padding: 10px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .download-item:last-child {
+            border-bottom: none;
+        }
+        .organize-card {
+            margin-top: 30px;
+        }
+        .timeline-list {
+            max-height: 420px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+        }
+        .timeline-list .collection-item {
+            cursor: pointer;
+        }
+        .timeline-list .collection-item.active {
+            background-color: #e8eaf6;
+        }
+        .lesson-queue-table {
+            max-height: 260px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+        }
+        .lesson-badge {
+            background: #f5f5f5;
+            border-radius: 4px;
+            padding: 2px 8px;
+            font-size: 0.8em;
+            color: #555;
+        }
+        .timeline-mode-btn.active {
+            background-color: #5c6bc0 !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="card-content">
+                <span class="card-title">
+                    <i class="material-icons left">video_library</i>
+                    YouTube Downloader
+                </span>
+                
+                <div class="row" style="margin-top: 30px;">
+                    <div class="input-field col s12">
+                        <i class="material-icons prefix">link</i>
+                        <input id="youtube-url" type="text" class="validate">
+                        <label for="youtube-url">Cole a URL do vídeo do YouTube</label>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col s12">
+                        <button class="btn waves-effect waves-light" id="btn-info" style="width: 100%;">
+                            <i class="material-icons left">info</i>
+                            Obter Informações
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="progress" id="progress">
+                    <div class="indeterminate"></div>
+                </div>
+                
+                <div class="video-info" id="video-info">
+                    <div class="row">
+                        <div class="col s12 center-align">
+                            <img id="video-thumbnail" class="video-thumbnail" src="" alt="Thumbnail">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col s12">
+                            <h5 id="video-title"></h5>
+                            <p id="video-info-type" style="display: none;"><strong>Tipo:</strong> <span id="type-badge"></span></p>
+                            <p><strong>Canal:</strong> <span id="video-uploader"></span></p>
+                            <div id="video-single-info">
+                                <p><strong>Duração:</strong> <span id="video-duration"></span></p>
+                                <p><strong>Visualizações:</strong> <span id="video-views"></span></p>
+                            </div>
+                            <div id="playlist-info" style="display: none;">
+                                <p><strong>Total de vídeos:</strong> <span id="playlist-count"></span></p>
+                                <div id="playlist-entries" style="max-height: 300px; overflow-y: auto; margin-top: 15px;">
+                                    <h6>Vídeos da Playlist (primeiros 10):</h6>
+                                    <ul id="playlist-list" class="collection"></ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="input-field col s12">
+                            <select id="quality-select">
+                                <option value="best" selected>Melhor Qualidade</option>
+                                <option value="worst">Pior Qualidade</option>
+                                <option value="bestvideo+bestaudio">Melhor Vídeo + Melhor Áudio</option>
+                            </select>
+                            <label>Qualidade do Vídeo</label>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col s12">
+                            <label>
+                                <input type="checkbox" id="download-subtitles" />
+                                <span>Baixar transcrição em português</span>
+                            </label>
+                            <p class="grey-text text-darken-1" style="font-size: 0.85em; margin-top: 5px;">
+                                <i class="material-icons tiny">info</i>
+                                Baixa legendas/transcrições automáticas em português (formato .vtt)
+                            </p>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col s12">
+                            <button class="btn waves-effect waves-light green" id="btn-download" style="width: 100%;">
+                                <i class="material-icons left">download</i>
+                                <span id="btn-download-text">Baixar Vídeo</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="error-message" class="red-text" style="display: none; margin-top: 20px;"></div>
+                <div id="success-message" class="green-text" style="display: none; margin-top: 20px;"></div>
+            </div>
+        </div>
+        
+        <div class="card downloads-list">
+            <div class="card-content">
+                <span class="card-title">
+                    <i class="material-icons left">folder</i>
+                    Vídeos Baixados
+                </span>
+                <button class="btn waves-effect waves-light blue" id="btn-refresh" style="margin-top: 10px;">
+                    <i class="material-icons left">refresh</i>
+                    Atualizar Lista
+                </button>
+                <div id="downloads-container" style="margin-top: 20px;"></div>
+            </div>
+        </div>
+
+        <div class="card organize-card">
+            <div class="card-content">
+                <span class="card-title">
+                    <i class="material-icons left">playlist_add</i>
+                    Organizar Cursos em Assuntos
+                </span>
+                <p class="grey-text text-darken-1" style="margin-top: 10px;">
+                    Escolha um curso baixado, visualize a linha do tempo das legendas e defina cortes para gerar aulas com nomes personalizados.
+                </p>
+                <div class="row" style="margin-top: 25px;">
+                    <div class="input-field col s12">
+                        <select id="course-select">
+                            <option value="" disabled selected>Selecione um curso</option>
+                        </select>
+                        <label>Curso disponível em downloads</label>
+                    </div>
+                </div>
+                <div class="row" style="margin-top: 15px;">
+                    <div class="col s12 m6">
+                        <button class="btn waves-effect waves-light orange" id="btn-transcribe-course" style="width: 100%;" disabled>
+                            <i class="material-icons left">text_fields</i>
+                            Gerar legendas deste curso
+                        </button>
+                    </div>
+                    <div class="col s12 m6">
+                        <button class="btn waves-effect waves-light deep-orange" id="btn-transcribe-all" style="width: 100%;">
+                            <i class="material-icons left">auto_fix_high</i>
+                            Gerar legendas de todos os cursos
+                        </button>
+                    </div>
+                </div>
+                <div id="course-feedback" class="grey-text" style="margin-bottom: 15px;"></div>
+                <div id="course-videos-container">
+                    <p class="grey-text">Selecione um curso para visualizar os vídeos.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="organize-modal" class="modal modal-fixed-footer">
+        <div class="modal-content">
+            <h4 style="margin-bottom: 10px;">Organizar Aulas</h4>
+            <p id="organize-context" class="grey-text"></p>
+            <div class="row" style="margin-top: 20px;">
+                <div class="col s12 m5">
+                    <div class="card-panel" style="padding: 15px;">
+                        <div class="row" style="margin-bottom: 10px;">
+                            <div class="col s6">
+                                <button id="timeline-start-btn" class="btn-small waves-effect waves-light blue timeline-mode-btn" data-mode="start" style="width: 100%;">Selecionar início</button>
+                            </div>
+                            <div class="col s6">
+                                <button id="timeline-end-btn" class="btn-small waves-effect waves-light blue timeline-mode-btn" data-mode="end" style="width: 100%;">Selecionar fim</button>
+                            </div>
+                        </div>
+                        <p class="grey-text" id="timeline-hint">Escolha se está marcando o início ou o fim e clique em um trecho da transcrição.</p>
+                        <ul class="collection timeline-list" id="timeline-list">
+                            <li class="collection-item grey-text">Carregando linha do tempo...</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col s12 m7">
+                    <div class="card-panel" style="padding: 15px;">
+                        <div class="row" style="margin-bottom: 0;">
+                            <div class="input-field col s12">
+                                <input id="lesson-title" type="text" placeholder="Ex: Aula 01 - Introdução">
+                                <label for="lesson-title">Nome da aula</label>
+                            </div>
+                            <div class="input-field col s6">
+                                <input id="lesson-start" type="text" placeholder="00:00:00">
+                                <label for="lesson-start">Início (HH:MM:SS)</label>
+                            </div>
+                            <div class="input-field col s6">
+                                <input id="lesson-end" type="text" placeholder="00:05:30">
+                                <label for="lesson-end">Fim (HH:MM:SS)</label>
+                            </div>
+                            <div class="col s12 right-align" style="margin-top: 10px;">
+                                <button class="btn waves-effect waves-light green" id="add-lesson-btn">
+                                    <i class="material-icons left">add</i>Adicionar aula
+                                </button>
+                            </div>
+                        </div>
+                        <div style="margin-top: 20px;">
+                            <p><strong>Plano de aulas</strong></p>
+                            <div class="lesson-queue-table" id="lesson-queue">
+                                <p class="grey-text" style="padding: 10px;">Nenhuma aula adicionada ainda.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="organize-error" class="red-text" style="display: none;"></div>
+        </div>
+        <div class="modal-footer">
+            <a href="#!" class="modal-close waves-effect waves-green btn-flat">Cancelar</a>
+            <button id="save-lessons-btn" class="btn waves-effect waves-light blue">
+                <i class="material-icons left">save</i>Salvar aulas
+            </button>
+        </div>
+    </div>
+    
+    <!-- Materialize JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    
+    <script>
+        let currentUrl = '';
+        let isPlaylist = false;
+        let coursesCache = [];
+        let selectedCourse = '';
+        let selectedVideo = '';
+        let lessonsQueue = [];
+        let timelineSegments = [];
+        let timelineSelectionMode = 'start';
+        let organizeModalInstance = null;
+        
+        // Inicializar Materialize
+        document.addEventListener('DOMContentLoaded', function() {
+            M.AutoInit();
+            loadDownloads();
+            loadCourses();
+            const modalElem = document.getElementById('organize-modal');
+            organizeModalInstance = M.Modal.init(modalElem, {
+                dismissible: false,
+                onCloseEnd: () => {
+                    lessonsQueue = [];
+                    timelineSegments = [];
+                    selectedVideo = '';
+                    renderLessonQueue();
+                    document.getElementById('lesson-title').value = '';
+                    document.getElementById('lesson-start').value = '';
+                    document.getElementById('lesson-end').value = '';
+                    M.updateTextFields();
+                }
+            });
+            document.getElementById('timeline-start-btn').addEventListener('click', () => setTimelineMode('start'));
+            document.getElementById('timeline-end-btn').addEventListener('click', () => setTimelineMode('end'));
+            document.getElementById('add-lesson-btn').addEventListener('click', addLessonToQueue);
+            document.getElementById('save-lessons-btn').addEventListener('click', saveLessons);
+            document.getElementById('course-select').addEventListener('change', function() {
+                const courseName = this.value;
+                if (!courseName) {
+                    document.getElementById('btn-transcribe-course').disabled = true;
+                    return;
+                }
+                selectedCourse = courseName;
+                document.getElementById('btn-transcribe-course').disabled = false;
+                loadCourseVideos(courseName);
+            });
+            document.getElementById('btn-transcribe-course').addEventListener('click', () => {
+                if (selectedCourse) {
+                    transcribeCourse(selectedCourse);
+                }
+            });
+            document.getElementById('btn-transcribe-all').addEventListener('click', transcribeAllCourses);
+            setTimelineMode('start');
+        });
+        
+        // Formatar duração
+        function formatDuration(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            
+            if (hours > 0) {
+                return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            }
+            return `${minutes}:${secs.toString().padStart(2, '0')}`;
+        }
+        
+        // Formatar número
+        function formatNumber(num) {
+            return new Intl.NumberFormat('pt-BR').format(num);
+        }
+        
+        // Formatar tamanho do arquivo
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+        
+        // Obter informações do vídeo
+        document.getElementById('btn-info').addEventListener('click', async function() {
+            const url = document.getElementById('youtube-url').value.trim();
+            
+            if (!url) {
+                M.toast({html: 'Por favor, insira uma URL do YouTube', classes: 'red'});
+                return;
+            }
+            
+            currentUrl = url;
+            document.getElementById('progress').style.display = 'block';
+            document.getElementById('video-info').style.display = 'none';
+            document.getElementById('error-message').style.display = 'none';
+            document.getElementById('success-message').style.display = 'none';
+            
+            try {
+                const response = await fetch('/api/info', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ url: url })
+                });
+                
+                const data = await response.json();
+                document.getElementById('progress').style.display = 'none';
+                
+                if (data.error) {
+                    document.getElementById('error-message').textContent = 'Erro: ' + data.error;
+                    document.getElementById('error-message').style.display = 'block';
+                    return;
+                }
+                
+                // Atualizar variável global
+                isPlaylist = data.is_playlist || false;
+                
+                // Mostrar informações
+                document.getElementById('video-thumbnail').src = data.thumbnail || '';
+                document.getElementById('video-title').textContent = data.title;
+                document.getElementById('video-uploader').textContent = data.uploader;
+                
+                // Mostrar tipo
+                document.getElementById('video-info-type').style.display = 'block';
+                
+                // Mostrar informação sobre legendas
+                const subtitleInfo = document.getElementById('subtitle-info') || (() => {
+                    const infoDiv = document.createElement('div');
+                    infoDiv.id = 'subtitle-info';
+                    infoDiv.style.marginTop = '10px';
+                    document.querySelector('#video-info .row:nth-of-type(2) .col.s12').appendChild(infoDiv);
+                    return infoDiv;
+                })();
+                
+                if (data.has_subtitles) {
+                    subtitleInfo.innerHTML = '<p class="green-text"><i class="material-icons tiny">check_circle</i> <strong>Legendas em português disponíveis</strong></p>';
+                } else {
+                    subtitleInfo.innerHTML = '<p class="orange-text"><i class="material-icons tiny">warning</i> <strong>Legendas em português não disponíveis</strong> para este vídeo</p>';
+                }
+                
+                if (isPlaylist) {
+                    document.getElementById('type-badge').innerHTML = '<span class="badge blue">Playlist</span>';
+                    document.getElementById('video-single-info').style.display = 'none';
+                    document.getElementById('playlist-info').style.display = 'block';
+                    document.getElementById('playlist-count').textContent = data.playlist_count || 0;
+                    document.getElementById('btn-download-text').textContent = 'Baixar Playlist';
+                    
+                    // Listar vídeos da playlist
+                    const playlistList = document.getElementById('playlist-list');
+                    if (data.entries && data.entries.length > 0) {
+                        playlistList.innerHTML = data.entries.map((entry, index) => `
+                            <li class="collection-item">
+                                <div>
+                                    <strong>${index + 1}. ${entry.title || 'Sem título'}</strong>
+                                    ${entry.duration ? '<br><small>Duração: ' + formatDuration(entry.duration) + '</small>' : ''}
+                                </div>
+                            </li>
+                        `).join('');
+                    } else {
+                        playlistList.innerHTML = '<li class="collection-item">Carregando lista de vídeos...</li>';
+                    }
+                } else {
+                    document.getElementById('type-badge').innerHTML = '<span class="badge green">Vídeo</span>';
+                    document.getElementById('video-single-info').style.display = 'block';
+                    document.getElementById('playlist-info').style.display = 'none';
+                    document.getElementById('video-duration').textContent = formatDuration(data.duration || 0);
+                    document.getElementById('video-views').textContent = formatNumber(data.view_count || 0);
+                    document.getElementById('btn-download-text').textContent = 'Baixar Vídeo';
+                }
+                
+                document.getElementById('video-info').style.display = 'block';
+                
+            } catch (error) {
+                document.getElementById('progress').style.display = 'none';
+                let errorMsg = 'Erro ao obter informações: ';
+                if (error.message.includes('Failed to fetch') || error.message.includes('network')) {
+                    errorMsg += 'Erro de conexão. Verifique se o servidor está rodando em http://localhost:5002';
+                } else {
+                    errorMsg += error.message;
+                }
+                document.getElementById('error-message').textContent = errorMsg;
+                document.getElementById('error-message').style.display = 'block';
+                console.error('Erro completo:', error);
+            }
+        });
+        
+        // Baixar vídeo
+        document.getElementById('btn-download').addEventListener('click', async function() {
+            if (!currentUrl) {
+                M.toast({html: 'Por favor, obtenha as informações do vídeo primeiro', classes: 'red'});
+                return;
+            }
+            
+            const quality = document.getElementById('quality-select').value;
+            const btn = document.getElementById('btn-download');
+            const originalText = btn.innerHTML;
+            
+            btn.disabled = true;
+            btn.innerHTML = '<i class="material-icons left">hourglass_empty</i>Baixando...';
+            document.getElementById('progress').style.display = 'block';
+            document.getElementById('error-message').style.display = 'none';
+            document.getElementById('success-message').style.display = 'none';
+            
+            const downloadSubtitles = document.getElementById('download-subtitles').checked;
+            
+            try {
+                const response = await fetch('/api/download', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        url: currentUrl, 
+                        quality: quality,
+                        is_playlist: isPlaylist,
+                        download_subtitles: downloadSubtitles
+                    })
+                });
+                
+                const data = await response.json();
+                document.getElementById('progress').style.display = 'none';
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                
+                if (data.success) {
+                    let successMsg = '';
+                    if (data.is_playlist) {
+                        successMsg = `<strong>Playlist baixada com sucesso!</strong><br>
+                            ${data.count} vídeo(s) da playlist "${data.playlist_title}" foram baixados.`;
+                        if (data.subtitles_downloaded) {
+                            successMsg += '<br><i class="material-icons tiny">subtitles</i> Transcrições em português também foram baixadas.';
+                        }
+                        M.toast({html: `Playlist baixada! ${data.count} vídeo(s)`, classes: 'green', displayLength: 5000});
+                    } else {
+                        successMsg = `Vídeo baixado com sucesso: ${data.title}`;
+                        if (data.subtitles_downloaded && data.subtitle) {
+                            successMsg += `<br><i class="material-icons tiny">subtitles</i> Transcrição em português baixada: ${data.subtitle}`;
+                        } else if (downloadSubtitles) {
+                            successMsg += '<br><small class="orange-text">Transcrição em português não disponível para este vídeo.</small>';
+                        }
+                        if (data.reels_created) {
+                            successMsg += `<br><i class="material-icons tiny">movie_filter</i> <strong>${data.reels_count} reels criados automaticamente!</strong> Pasta: ${data.reels_folder}`;
+                        }
+                        M.toast({html: 'Vídeo baixado com sucesso!', classes: 'green'});
+                    }
+                    document.getElementById('success-message').innerHTML = successMsg;
+                    document.getElementById('success-message').style.display = 'block';
+                    loadDownloads();
+                } else {
+                    document.getElementById('error-message').textContent = 'Erro: ' + data.error;
+                    document.getElementById('error-message').style.display = 'block';
+                }
+                
+            } catch (error) {
+                document.getElementById('progress').style.display = 'none';
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                document.getElementById('error-message').textContent = 'Erro ao baixar: ' + error.message;
+                document.getElementById('error-message').style.display = 'block';
+            }
+        });
+        
+        // Carregar lista de downloads
+        async function loadDownloads() {
+            try {
+                const response = await fetch('/api/list-downloads');
+                const data = await response.json();
+                const container = document.getElementById('downloads-container');
+                
+                if (data.files.length === 0) {
+                    container.innerHTML = '<p>Nenhum vídeo baixado ainda.</p>';
+                    return;
+                }
+                
+                container.innerHTML = data.files.map(file => {
+                    const isSubtitle = file.type === 'subtitle' || file.name.endsWith('.vtt');
+                    const isTranscript = file.type === 'transcript' || (file.name.endsWith('.txt') && file.name.includes('_whisper'));
+                    const isReel = file.type === 'reel' || file.name.includes('_reels/');
+                    const isVideo = file.type === 'video' && !isSubtitle && !isTranscript && !isReel;
+                    
+                    let icon = 'video_library';
+                    let badge = '';
+                    if (isSubtitle) {
+                        icon = 'subtitles';
+                        badge = '<span class="badge blue">Legenda</span>';
+                    } else if (isTranscript) {
+                        icon = 'description';
+                        badge = '<span class="badge green">Transcrição Whisper</span>';
+                    } else if (isReel) {
+                        icon = 'movie_filter';
+                        badge = '<span class="badge purple">Reel</span>';
+                    }
+                    
+                    const transcribeButton = isVideo ? `
+                        <button class="btn-small waves-effect waves-light orange transcribe-btn" 
+                                data-filename="${file.name}" 
+                                style="margin-left: 5px;"
+                                title="Transcrever com Whisper">
+                            <i class="material-icons">text_fields</i>
+                        </button>
+                    ` : '';
+                    
+                    const reelsButton = isVideo ? `
+                        <button class="btn-small waves-effect waves-light reels-btn" 
+                                data-filename="${file.name}" 
+                                style="margin-left: 5px; background-color: #9c27b0;"
+                                title="Criar Reels">
+                            <i class="material-icons">movie_filter</i>
+                        </button>
+                    ` : '';
+                    
+                    return `
+                    <div class="download-item">
+                        <div class="row" style="margin-bottom: 0;">
+                            <div class="col s8">
+                                <p style="margin: 0;">
+                                    <i class="material-icons tiny">${icon}</i>
+                                    <strong>${file.name}</strong> ${badge}
+                                </p>
+                                <p style="margin: 0; color: #666; font-size: 0.9em;">${formatFileSize(file.size)}</p>
+                            </div>
+                            <div class="col s4 right-align">
+                                <a href="/api/download-file/${encodeURIComponent(file.name)}" 
+                                   class="btn-small waves-effect waves-light blue" 
+                                   download>
+                                    <i class="material-icons">download</i>
+                                </a>
+                                ${transcribeButton}
+                                ${reelsButton}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                }).join('');
+                
+                // Adiciona event listeners para botões de transcrição
+                document.querySelectorAll('.transcribe-btn').forEach(btn => {
+                    btn.addEventListener('click', async function() {
+                        const filename = this.getAttribute('data-filename');
+                        transcribeVideo(filename, this);
+                    });
+                });
+                
+                // Adiciona event listeners para botões de reels
+                document.querySelectorAll('.reels-btn').forEach(btn => {
+                    btn.addEventListener('click', async function() {
+                        const filename = this.getAttribute('data-filename');
+                        createReels(filename, this);
+                    });
+                });
+                
+            } catch (error) {
+                console.error('Erro ao carregar downloads:', error);
+            }
+        }
+        
+        // Atualizar lista
+        document.getElementById('btn-refresh').addEventListener('click', loadDownloads);
+        
+        // Função para transcrever vídeo
+        async function transcribeVideo(filename, button) {
+            const originalHTML = button.innerHTML;
+            button.disabled = true;
+            button.innerHTML = '<i class="material-icons">hourglass_empty</i>';
+            
+            // Mostra modal de progresso
+            const progressModal = document.getElementById('transcribe-progress') || (() => {
+                const modal = document.createElement('div');
+                modal.id = 'transcribe-progress';
+                modal.className = 'modal';
+                modal.innerHTML = `
+                    <div class="modal-content">
+                        <h4>Transcrevendo vídeo...</h4>
+                        <p id="transcribe-status">Preparando transcrição...</p>
+                        <div class="progress">
+                            <div class="indeterminate"></div>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+                return modal;
+            })();
+            
+            const instance = M.Modal.init(progressModal, {dismissible: false});
+            instance.open();
+            
+            try {
+                const response = await fetch('/api/transcribe-video', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        filename: filename,
+                        model: 'base'  // Pode ser: tiny, base, small, medium, large
+                    })
+                });
+                
+                const data = await response.json();
+                instance.close();
+                button.disabled = false;
+                button.innerHTML = originalHTML;
+                
+                if (data.success) {
+                    M.toast({html: 'Transcrição concluída com sucesso!', classes: 'green', displayLength: 5000});
+                    loadDownloads(); // Atualiza a lista
+                    
+                    // Mostra preview da transcrição
+                    if (data.text) {
+                        const previewModal = document.createElement('div');
+                        previewModal.className = 'modal';
+                        previewModal.innerHTML = `
+                            <div class="modal-content">
+                                <h4>Transcrição: ${filename}</h4>
+                                <p><strong>Arquivo:</strong> ${data.filename}</p>
+                                ${data.full_length ? `<p><strong>Tamanho:</strong> ${data.full_length} caracteres</p>` : ''}
+                                <div style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; padding: 15px; margin-top: 15px;">
+                                    <p style="white-space: pre-wrap;">${data.text}</p>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <a href="/api/download-file/${encodeURIComponent(data.filename)}" 
+                                   class="modal-close waves-effect waves-green btn-flat">Baixar</a>
+                                <a href="#!" class="modal-close waves-effect waves-green btn-flat">Fechar</a>
+                            </div>
+                        `;
+                        document.body.appendChild(previewModal);
+                        M.Modal.init(previewModal).open();
+                    }
+                } else {
+                    M.toast({html: 'Erro: ' + data.error, classes: 'red', displayLength: 5000});
+                }
+            } catch (error) {
+                instance.close();
+                button.disabled = false;
+                button.innerHTML = originalHTML;
+                M.toast({html: 'Erro ao transcrever: ' + error.message, classes: 'red', displayLength: 5000});
+            }
+        }
+        
+        // Função para criar reels
+        async function createReels(filename, button) {
+            const originalHTML = button.innerHTML;
+            button.disabled = true;
+            button.innerHTML = '<i class="material-icons">hourglass_empty</i>';
+            
+            // Mostra modal de progresso
+            const progressModal = document.getElementById('reels-progress') || (() => {
+                const modal = document.createElement('div');
+                modal.id = 'reels-progress';
+                modal.className = 'modal';
+                modal.innerHTML = `
+                    <div class="modal-content">
+                        <h4>Criando Reels...</h4>
+                        <p id="reels-status">Analisando legendas e identificando momentos virais...</p>
+                        <div class="progress">
+                            <div class="indeterminate"></div>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+                return modal;
+            })();
+            
+            const instance = M.Modal.init(progressModal, {dismissible: false});
+            instance.open();
+            
+            try {
+                const response = await fetch('/api/create-reels', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        filename: filename,
+                        min_duration: 15,
+                        max_duration: 60
+                    })
+                });
+                
+                const data = await response.json();
+                instance.close();
+                button.disabled = false;
+                button.innerHTML = originalHTML;
+                
+                if (data.success) {
+                    M.toast({html: `${data.count} reels criados com sucesso!`, classes: 'green', displayLength: 5000});
+                    loadDownloads(); // Atualiza a lista
+                    
+                    // Mostra lista de clips criados
+                    const clipsModal = document.createElement('div');
+                    clipsModal.className = 'modal';
+                    clipsModal.innerHTML = `
+                        <div class="modal-content">
+                            <h4>Reels Criados: ${data.clips_folder}</h4>
+                            <p><strong>Total:</strong> ${data.count} cortes</p>
+                            <div style="max-height: 400px; overflow-y: auto; margin-top: 15px;">
+                                ${data.clips.map((clip, idx) => `
+                                    <div class="collection-item" style="padding: 10px; border-bottom: 1px solid #e0e0e0;">
+                                        <strong>${clip.filename}</strong><br>
+                                        <small>Início: ${Math.floor(clip.start)}s | Duração: ${Math.floor(clip.duration)}s</small><br>
+                                        <small style="color: #666;">${clip.text}</small>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <a href="#!" class="modal-close waves-effect waves-green btn-flat">Fechar</a>
+                        </div>
+                    `;
+                    document.body.appendChild(clipsModal);
+                    M.Modal.init(clipsModal).open();
+                } else {
+                    M.toast({html: 'Erro: ' + data.error, classes: 'red', displayLength: 5000});
+                }
+            } catch (error) {
+                instance.close();
+                button.disabled = false;
+                button.innerHTML = originalHTML;
+                M.toast({html: 'Erro ao criar reels: ' + error.message, classes: 'red', displayLength: 5000});
+            }
+        }
+
+        async function loadCourses() {
+            const feedback = document.getElementById('course-feedback');
+            feedback.textContent = 'Carregando cursos...';
+            try {
+                const response = await fetch('/api/list-courses');
+                const data = await response.json();
+                if (!data.success) {
+                    feedback.textContent = data.error || 'Não foi possível carregar os cursos.';
+                    return;
+                }
+                coursesCache = data.courses || [];
+                const select = document.getElementById('course-select');
+                select.innerHTML = '<option value="" disabled selected>Selecione um curso</option>';
+                if (coursesCache.length === 0) {
+                    feedback.textContent = 'Nenhum curso encontrado. Baixe uma playlist primeiro.';
+                } else {
+                    feedback.textContent = `${coursesCache.length} curso(s) disponíveis.`;
+                    coursesCache.forEach(course => {
+                        const option = document.createElement('option');
+                        option.value = course.name;
+                        const lessonsInfo = course.lessons_count ? ` | ${course.lessons_count} aulas` : '';
+                        option.textContent = `${course.name} (${course.video_count} vídeos${lessonsInfo})`;
+                        select.appendChild(option);
+                    });
+                }
+                M.FormSelect.init(select);
+            } catch (error) {
+                feedback.textContent = 'Erro ao carregar cursos: ' + error.message;
+            }
+        }
+
+        async function loadCourseVideos(courseName) {
+            const container = document.getElementById('course-videos-container');
+            container.innerHTML = '<p>Carregando vídeos...</p>';
+            try {
+                const response = await fetch('/api/course-videos', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ course: courseName })
+                });
+                const data = await response.json();
+                if (!data.success) {
+                    container.innerHTML = `<p class="red-text">${data.error || 'Erro ao carregar vídeos.'}</p>`;
+                    return;
+                }
+                renderCourseVideos(data.videos || []);
+            } catch (error) {
+                container.innerHTML = `<p class="red-text">Erro ao carregar vídeos: ${error.message}</p>`;
+            }
+        }
+
+        function renderCourseVideos(videos) {
+            const container = document.getElementById('course-videos-container');
+            if (!videos.length) {
+                container.innerHTML = '<p class="grey-text">Nenhum vídeo encontrado nessa pasta.</p>';
+                return;
+            }
+            container.innerHTML = videos.map(video => {
+                const duration = video.duration ? formatDuration(Math.floor(video.duration)) : '---';
+                const subtitleBadge = video.has_subtitles
+                    ? '<span class="lesson-badge green-text text-darken-2"><i class="material-icons tiny">subtitles</i> Legendas OK</span>'
+                    : '<span class="lesson-badge orange-text text-darken-2"><i class="material-icons tiny">warning</i> Sem legendas</span>';
+                return `
+                    <div class="download-item" style="border-bottom: 1px solid #eee;">
+                        <div class="row" style="margin-bottom: 0;">
+                            <div class="col s8">
+                                <p style="margin: 0;"><strong>${video.name}</strong></p>
+                                <p style="margin: 0;" class="grey-text text-darken-1">
+                                    Duração: ${duration} | Tamanho: ${formatFileSize(video.size)}
+                                </p>
+                                <p style="margin: 0;" class="grey-text text-darken-1">${subtitleBadge}</p>
+                            </div>
+                            <div class="col s4 right-align">
+                                <button class="btn-small waves-effect waves-light blue organize-btn" 
+                                        data-video="${video.name}"
+                                        ${video.has_subtitles ? '' : 'disabled'}
+                                        title="${video.has_subtitles ? 'Organizar aulas' : 'Baixe as legendas para ativar'}">
+                                    <i class="material-icons">content_cut</i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            document.querySelectorAll('.organize-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const videoName = this.getAttribute('data-video');
+                    openOrganizeModal(selectedCourse, videoName);
+                });
+            });
+        }
+
+        function setTimelineMode(mode) {
+            timelineSelectionMode = mode;
+            document.querySelectorAll('.timeline-mode-btn').forEach(btn => btn.classList.remove('active'));
+            const button = mode === 'start' ? document.getElementById('timeline-start-btn') : document.getElementById('timeline-end-btn');
+            button.classList.add('active');
+            const hint = document.getElementById('timeline-hint');
+            hint.textContent = mode === 'start'
+                ? 'Clique em um trecho para definir o início da aula.'
+                : 'Clique em um trecho para definir o fim.';
+        }
+
+        async function openOrganizeModal(courseName, videoName) {
+            if (!courseName || !videoName) {
+                M.toast({html: 'Selecione um curso e um vídeo válidos.', classes: 'red'});
+                return;
+            }
+            selectedVideo = videoName;
+            lessonsQueue = [];
+            renderLessonQueue();
+            document.getElementById('lesson-title').value = '';
+            document.getElementById('lesson-start').value = '';
+            document.getElementById('lesson-end').value = '';
+            M.updateTextFields();
+            const context = document.getElementById('organize-context');
+            context.innerHTML = `<strong>Curso:</strong> ${courseName} &nbsp; | &nbsp; <strong>Vídeo:</strong> ${videoName}`;
+            const timelineList = document.getElementById('timeline-list');
+            timelineList.innerHTML = '<li class="collection-item">Carregando linha do tempo...</li>';
+            document.getElementById('organize-error').style.display = 'none';
+            organizeModalInstance.open();
+            setTimelineMode('start');
+            try {
+                const response = await fetch('/api/video-timeline', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        course: courseName,
+                        filename: videoName
+                    })
+                });
+                const data = await response.json();
+                if (!data.success) {
+                    timelineList.innerHTML = `<li class="collection-item red-text">${data.error || 'Não foi possível gerar a linha do tempo.'}</li>`;
+                    document.getElementById('organize-error').textContent = data.error || '';
+                    document.getElementById('organize-error').style.display = 'block';
+                    return;
+                }
+                timelineSegments = data.segments || [];
+                renderTimeline();
+            } catch (error) {
+                timelineList.innerHTML = `<li class="collection-item red-text">Erro: ${error.message}</li>`;
+            }
+        }
+
+        function renderTimeline() {
+            const timelineList = document.getElementById('timeline-list');
+            if (timelineSegments.length === 0) {
+                timelineList.innerHTML = '<li class="collection-item grey-text">Nenhuma legenda disponível para este vídeo.</li>';
+                return;
+            }
+            timelineList.innerHTML = timelineSegments.map((segment, index) => `
+                <li class="collection-item" data-index="${index}">
+                    <span class="lesson-badge">${segment.start} → ${segment.end}</span>
+                    <p style="margin: 5px 0 0 0; font-size: 0.9em;">${segment.text}</p>
+                </li>
+            `).join('');
+            document.querySelectorAll('#timeline-list .collection-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    document.querySelectorAll('#timeline-list .collection-item').forEach(i => i.classList.remove('active'));
+                    this.classList.add('active');
+                    const idx = parseInt(this.getAttribute('data-index'), 10);
+                    const segment = timelineSegments[idx];
+                    handleTimelineClick(segment);
+                });
+            });
+        }
+
+        function handleTimelineClick(segment) {
+            const targetInput = timelineSelectionMode === 'end'
+                ? document.getElementById('lesson-end')
+                : document.getElementById('lesson-start');
+            const value = timelineSelectionMode === 'end' ? segment.end : segment.start;
+            targetInput.value = value;
+            M.updateTextFields();
+            const message = timelineSelectionMode === 'end'
+                ? `Fim definido em ${value}`
+                : `Início definido em ${value}`;
+            M.toast({html: message, classes: 'blue', displayLength: 2000});
+        }
+
+        function addLessonToQueue(event) {
+            event.preventDefault();
+            const titleInput = document.getElementById('lesson-title');
+            const startInput = document.getElementById('lesson-start');
+            const endInput = document.getElementById('lesson-end');
+            const title = titleInput.value.trim() || `Aula ${lessonsQueue.length + 1}`;
+            const start = startInput.value.trim();
+            const end = endInput.value.trim();
+            if (!start || !end) {
+                M.toast({html: 'Defina início e fim para a aula.', classes: 'red'});
+                return;
+            }
+            lessonsQueue.push({ title, start, end });
+            renderLessonQueue();
+            titleInput.value = '';
+            startInput.value = '';
+            endInput.value = '';
+            M.updateTextFields();
+        }
+
+        function renderLessonQueue() {
+            const container = document.getElementById('lesson-queue');
+            if (!lessonsQueue.length) {
+                container.innerHTML = '<p class="grey-text" style="padding: 10px;">Nenhuma aula adicionada ainda.</p>';
+                return;
+            }
+            container.innerHTML = lessonsQueue.map((lesson, index) => `
+                <div class="download-item" style="border-bottom: 1px solid #eee;">
+                    <div class="row" style="margin-bottom: 0;">
+                        <div class="col s9">
+                            <p style="margin: 0;"><strong>${index + 1}. ${lesson.title}</strong></p>
+                            <p style="margin: 0;" class="grey-text">${lesson.start} → ${lesson.end}</p>
+                        </div>
+                        <div class="col s3 right-align">
+                            <button class="btn-flat red-text remove-lesson-btn" data-index="${index}" title="Remover">
+                                <i class="material-icons">delete</i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            document.querySelectorAll('.remove-lesson-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const idx = parseInt(this.getAttribute('data-index'), 10);
+                    lessonsQueue.splice(idx, 1);
+                    renderLessonQueue();
+                });
+            });
+        }
+
+        async function transcribeCourse(courseName) {
+            if (!courseName) {
+                M.toast({html: 'Selecione um curso primeiro', classes: 'red'});
+                return;
+            }
+            
+            const btn = document.getElementById('btn-transcribe-course');
+            const originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="material-icons left">hourglass_empty</i>Processando...';
+            
+            const progressModal = document.getElementById('transcribe-course-progress') || (() => {
+                const modal = document.createElement('div');
+                modal.id = 'transcribe-course-progress';
+                modal.className = 'modal';
+                modal.innerHTML = `
+                    <div class="modal-content">
+                        <h4>Gerando legendas com Whisper</h4>
+                        <p id="transcribe-course-status">Carregando modelo e processando vídeos...</p>
+                        <div class="progress">
+                            <div class="indeterminate"></div>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+                return modal;
+            })();
+            
+            const instance = M.Modal.init(progressModal, {dismissible: false});
+            instance.open();
+            
+            try {
+                const response = await fetch('/api/transcribe-course', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        course: courseName,
+                        model: 'base'
+                    })
+                });
+                
+                const data = await response.json();
+                instance.close();
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+                
+                if (data.success) {
+                    M.toast({
+                        html: `${data.processed} vídeo(s) transcrito(s) com sucesso!`,
+                        classes: 'green',
+                        displayLength: 5000
+                    });
+                    
+                    if (data.errors > 0) {
+                        M.toast({
+                            html: `${data.errors} erro(s) durante o processamento`,
+                            classes: 'orange',
+                            displayLength: 5000
+                        });
+                    }
+                    
+                    // Atualiza a lista de vídeos
+                    loadCourseVideos(courseName);
+                    loadCourses();
+                } else {
+                    M.toast({html: 'Erro: ' + data.error, classes: 'red', displayLength: 5000});
+                }
+            } catch (error) {
+                instance.close();
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+                M.toast({html: 'Erro ao transcrever: ' + error.message, classes: 'red', displayLength: 5000});
+            }
+        }
+        
+        async function transcribeAllCourses() {
+            if (!confirm('Isso irá processar TODOS os cursos. Pode demorar bastante tempo. Continuar?')) {
+                return;
+            }
+            
+            const btn = document.getElementById('btn-transcribe-all');
+            const originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="material-icons left">hourglass_empty</i>Processando todos...';
+            
+            const progressModal = document.getElementById('transcribe-all-progress') || (() => {
+                const modal = document.createElement('div');
+                modal.id = 'transcribe-all-progress';
+                modal.className = 'modal';
+                modal.innerHTML = `
+                    <div class="modal-content">
+                        <h4>Gerando legendas para todos os cursos</h4>
+                        <p id="transcribe-all-status">Carregando modelo e processando todos os vídeos...</p>
+                        <p class="grey-text">Isso pode demorar bastante tempo dependendo da quantidade de vídeos.</p>
+                        <div class="progress">
+                            <div class="indeterminate"></div>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+                return modal;
+            })();
+            
+            const instance = M.Modal.init(progressModal, {dismissible: false});
+            instance.open();
+            
+            try {
+                const response = await fetch('/api/transcribe-all-courses', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        model: 'base'
+                    })
+                });
+                
+                const data = await response.json();
+                instance.close();
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+                
+                if (data.success) {
+                    let message = `${data.total_processed} vídeo(s) transcrito(s) em ${data.courses.length} curso(s)!`;
+                    if (data.total_errors > 0) {
+                        message += ` (${data.total_errors} erro(s))`;
+                    }
+                    
+                    M.toast({
+                        html: message,
+                        classes: 'green',
+                        displayLength: 8000
+                    });
+                    
+                    // Atualiza listas
+                    if (selectedCourse) {
+                        loadCourseVideos(selectedCourse);
+                    }
+                    loadCourses();
+                } else {
+                    M.toast({html: 'Erro: ' + data.error, classes: 'red', displayLength: 5000});
+                }
+            } catch (error) {
+                instance.close();
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+                M.toast({html: 'Erro ao transcrever: ' + error.message, classes: 'red', displayLength: 5000});
+            }
+        }
+        
+        async function saveLessons() {
+            if (!selectedCourse || !selectedVideo) {
+                M.toast({html: 'Selecione um curso e um vídeo.', classes: 'red'});
+                return;
+            }
+            if (!lessonsQueue.length) {
+                M.toast({html: 'Adicione pelo menos uma aula antes de salvar.', classes: 'red'});
+                return;
+            }
+            const btn = document.getElementById('save-lessons-btn');
+            const originalHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="material-icons left">hourglass_empty</i>Salvando...';
+            try {
+                const response = await fetch('/api/create-lessons', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        course: selectedCourse,
+                        filename: selectedVideo,
+                        lessons: lessonsQueue
+                    })
+                });
+                const data = await response.json();
+                if (!data.success) {
+                    M.toast({html: data.error || 'Erro ao criar aulas.', classes: 'red', displayLength: 5000});
+                } else {
+                    M.toast({html: data.message || 'Aulas criadas com sucesso!', classes: 'green', displayLength: 5000});
+                    organizeModalInstance.close();
+                    lessonsQueue = [];
+                    loadCourseVideos(selectedCourse);
+                }
+            } catch (error) {
+                M.toast({html: 'Erro ao salvar aulas: ' + error.message, classes: 'red'});
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
+        }
+    </script>
+</body>
+</html>
+
